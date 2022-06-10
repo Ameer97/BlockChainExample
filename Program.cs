@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
@@ -17,28 +18,13 @@ namespace BlockChainExample
 
             Blockchain phillyCoin = new Blockchain();
             phillyCoin.AddBlock(new Block(DateTime.Now, null, "{sender:Henry,receiver:MaHesh,amount:10}"));
-            //Console.WriteLine(phillyCoin.GetLatestBlock());
-            Console.WriteLine(JsonConvert.SerializeObject(phillyCoin));
-            Console.WriteLine();
-
             phillyCoin.AddBlock(new Block(DateTime.Now, null, "{sender:MaHesh,receiver:Henry,amount:5}"));
-            Console.WriteLine(JsonConvert.SerializeObject(phillyCoin));
-            Console.WriteLine();
-            //Console.WriteLine(phillyCoin.GetLatestBlock());
-            //Console.WriteLine(JsonConvert.SerializeObject(phillyCoin));
-
             phillyCoin.AddBlock(new Block(DateTime.Now, null, "{sender:Mahesh,receiver:Henry,amount:5}"));
             //Console.WriteLine(JsonConvert.SerializeObject(phillyCoin));
-            //Console.WriteLine(phillyCoin.GetLatestBlock());
-            Console.WriteLine(JsonConvert.SerializeObject(phillyCoin));
-            Console.WriteLine();
+            phillyCoin.DisplayAll();
 
-            foreach (var item in phillyCoin.Chain)
-            {
-                Console.WriteLine(item);
-                Console.WriteLine(item.Data);
-
-            }
+            phillyCoin.VerifyChain();
+            
         }
     }
 
@@ -66,14 +52,29 @@ namespace BlockChainExample
             Hash = CalculateHash();
         }
 
+        private string InputHash(string newData = null)
+        {
+            var AData = (string.IsNullOrEmpty(newData)) ? Data : newData;
+
+            var input = $"{TimeStamp}-{PreviousHash ?? ""}-{AData}";
+
+            return input;
+            //return Encoding.ASCII.GetBytes();
+        }
+
         public string CalculateHash()
         {
-            SHA256 sha256 = SHA256.Create();
+            var outputBytes = BCrypt.Net.BCrypt.HashPassword(InputHash(), 12);
 
-            byte[] inputBytes = Encoding.ASCII.GetBytes($"{TimeStamp}-{PreviousHash ?? ""}-{Data}");
-            byte[] outputBytes = sha256.ComputeHash(inputBytes);
+            //return Convert.ToBase64String(outputBytes);
+            return outputBytes;
+        }
 
-            return Convert.ToBase64String(outputBytes);
+        public bool VerifyHash(string NewData)
+        {
+            bool verified = BCrypt.Net.BCrypt.Verify(InputHash(NewData), Hash);
+            if (verified) return true;
+            return false;
         }
 
 
@@ -120,6 +121,38 @@ namespace BlockChainExample
                 block.Hash = block.CalculateHash();
                 Chain.Add(block);
             }
+
+            public void DisplayAll()
+            {
+                foreach (var item in Chain)
+                {
+                    Console.WriteLine("Index: {0}" +
+                        "\n" +
+                        "TimeStamp: {1}" +
+                        "\n" +
+                        "Current Hash: {2}" +
+                        "\n" +
+                        "Previous Hash: {3}" +
+                        "\n" +
+                        "Data: {4}" +
+                        "\n\n", 
+                        item.Index, item.TimeStamp, item.Hash, item.PreviousHash, item.Data);
+                }
+            }
+
+            public void VerifyChain()
+            {
+                Console.WriteLine();
+                for (int i = 0; i < Chain.Count; i++)
+                {
+                    Console.WriteLine(Chain[i].VerifyHash(Chain[i].Data));
+                }
+            }
+
+
+            
+
+
         }
     }
 }
