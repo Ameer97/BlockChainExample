@@ -18,13 +18,22 @@ namespace BlockChainExample
 
             Blockchain phillyCoin = new Blockchain();
             phillyCoin.AddBlock(new Block(DateTime.Now, null, "{sender:Henry,receiver:MaHesh,amount:10}"));
-            phillyCoin.AddBlock(new Block(DateTime.Now, null, "{sender:MaHesh,receiver:Henry,amount:5}"));
+            phillyCoin.AddBlock(new Block(DateTime.Now, null, "{sender:Ameer,receiver:Mustafa,amount:15}"));
             phillyCoin.AddBlock(new Block(DateTime.Now, null, "{sender:Mahesh,receiver:Henry,amount:5}"));
             //Console.WriteLine(JsonConvert.SerializeObject(phillyCoin));
             phillyCoin.DisplayAll();
 
             phillyCoin.VerifyChain();
-            
+
+
+
+            phillyCoin.Chain.First().Data = "Change it";
+            phillyCoin.Chain.Skip(1).First().PreviousHash = " $2a$12$dzX/18Rv2YM6qjuBn8D0vu7H19urfmMxz/wWLtWo2.UwP4dhaw53W";
+            Console.WriteLine();
+            Console.WriteLine();
+            phillyCoin.DisplayAll();
+            phillyCoin.VerifyChain();
+
         }
     }
 
@@ -72,9 +81,16 @@ namespace BlockChainExample
 
         public bool VerifyHash(string NewData)
         {
-            bool verified = BCrypt.Net.BCrypt.Verify(InputHash(NewData), Hash);
-            if (verified) return true;
-            return false;
+            try
+            {
+                bool verified = BCrypt.Net.BCrypt.Verify(InputHash(NewData), Hash);
+                if (verified) return true;
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
 
@@ -135,17 +151,43 @@ namespace BlockChainExample
                         "Previous Hash: {3}" +
                         "\n" +
                         "Data: {4}" +
-                        "\n\n", 
-                        item.Index, item.TimeStamp, item.Hash, item.PreviousHash, item.Data);
+                        "\n\n",
+                        item.Index + 1, item.TimeStamp, item.Hash, item.PreviousHash, item.Data);
                 }
+            }
+
+            public void VerifyWithPreviousHash(int index)
+            {
+                var Block = Chain[index];
+                var result = Block.Index + " ";
+
+                var IsVerifyedHash = Block.VerifyHash(Block.Data);
+
+                result += IsVerifyedHash;
+
+                if (!IsVerifyedHash)
+                {
+                    result += " " + false;
+                    Console.WriteLine(result);
+                    return;
+                }
+
+                if (index + 1 >= Chain.Count) return;
+
+                var NextBlock = Chain[index + 1];
+                var IsVerifyedWithNextHash = Block.Hash == NextBlock.PreviousHash;
+
+                result += " " + IsVerifyedWithNextHash;
+                Console.WriteLine(result);
             }
 
             public void VerifyChain()
             {
+                Console.WriteLine("# Data Hash");
                 Console.WriteLine();
                 for (int i = 0; i < Chain.Count; i++)
                 {
-                    Console.WriteLine(Chain[i].VerifyHash(Chain[i].Data));
+                    VerifyWithPreviousHash(i);
                 }
             }
 
